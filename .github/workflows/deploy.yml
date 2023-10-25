@@ -1,0 +1,52 @@
+name: Deploy to Kubernetes
+
+# this is an example github actions workflow that does a release and records it to Prodvana
+
+on:
+  push:
+    branches:
+      - release/staging
+      - release/prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: init pvnctl
+      uses: prodvana/init-pvnctl-action@v0.1.0
+      with:
+        org: prodvana-cont-testing-prod
+        api_token: ${{ secrets.PVN_TOKEN }}
+
+    - name: Extract branch name
+      id: extract_branch
+      run: |
+        BRANCH_NAME=$(echo $GITHUB_REF | sed -n 's/refs\/heads\/release\/\([a-zA-Z]*\)/\1/p')
+        echo "Extracted branch name: $BRANCH_NAME"
+        echo "::set-output name=branch::$BRANCH_NAME"
+    - name: Record release to Prodvana
+      id: record-release
+      uses: prodvana/record-release-action@v0.1.1
+      with:
+        app: clairvoyance-demo
+        service: demo
+        release_channel: ${{ steps.extract_branch.outputs.branch }}
+        pending: true
+    - name: Release code
+      shell: bash
+      run: |
+        # do actual release here, e.g. kubectl apply ...
+        exit 0
+    - name: Update success status
+      uses: prodvana/update-release-status-action@v0.1.0
+      with:
+        release_id: ${{ steps.record-release.outputs.release_id }}
+    - name: Update failure status
+      uses: prodvana/update-release-status-action@v0.1.0
+      if: failure()
+      with:
+        release_id: ${{ steps.record-release.outputs.release_id }}
+        failed: true
