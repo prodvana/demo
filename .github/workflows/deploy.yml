@@ -1,6 +1,6 @@
 name: Deploy to Kubernetes
 
-# this is an example github actions workflow that does a release and records it to Prodvana
+# this is an example github actions workflow that does a deployment and records it to Prodvana
 
 on:
   push:
@@ -27,26 +27,26 @@ jobs:
         BRANCH_NAME=$(echo $GITHUB_REF | sed -n 's/refs\/heads\/release\/\([a-zA-Z]*\)/\1/p')
         echo "Extracted branch name: $BRANCH_NAME"
         echo "::set-output name=branch::$BRANCH_NAME"
-    - name: Record release to Prodvana
-      id: record-release
-      uses: prodvana/record-release-action@v0.1.1
+    - name: Record deployment to Prodvana
+      id: record-deployment
+      uses: prodvana/record-deployment-action@v0.1.1
       with:
         app: clairvoyance-demo
         service: demo
         release_channel: ${{ steps.extract_branch.outputs.branch }}
         pending: true
-    - name: Release code
+    - name: Deploy code
       shell: bash
       run: |
-        # do actual release here, e.g. kubectl apply ...
+        # do actual deployment here, e.g. kubectl apply ...
         exit 0
     - name: Update success status
-      uses: prodvana/update-release-status-action@v0.1.0
+      uses: prodvana/update-deployment-status-action@v0.1.0
       with:
-        release_id: ${{ steps.record-release.outputs.release_id }}
+        deployment_id: ${{ steps.record-deployment.outputs.deployment_id }}
     - name: Update failure status
-      uses: prodvana/update-release-status-action@v0.1.0
+      uses: prodvana/update-deployment-status-action@v0.1.0
       if: failure()
       with:
-        release_id: ${{ steps.record-release.outputs.release_id }}
+        deployment_id: ${{ steps.record-deployment.outputs.deployment_id }}
         failed: true
